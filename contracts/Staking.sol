@@ -4,19 +4,16 @@ pragma solidity ^0.8.2;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IERC20NoTransfer.sol";
+import "./ERC20NoTransfer.sol";
 import "hardhat/console.sol";
 
-contract Staking is Ownable {
+contract Staking is ERC20NoTransfer, Ownable {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.UintSet;
-    using Math for uint256;
     /// Main token
     IERC20 public tokenMain;
-    /// Stake token
-    IERC20NoTransfer public tokenStake;
     /// Reward token
     IERC20NoTransfer public tokenReward;
 
@@ -77,14 +74,12 @@ contract Staking is Ownable {
 
     constructor(
         address addressTokenMain,
-        address addressTokenStake,
         address addressTokenReward,
         uint256 _reward,
         uint256 _tokenClaimPeriod,
         uint256 _duration
-    ) {
+    ) ERC20NoTransfer("SBGG", "SBGG") {
         tokenMain = IERC20(addressTokenMain);
-        tokenStake = IERC20NoTransfer(addressTokenStake);
         tokenReward = IERC20NoTransfer(addressTokenReward);
         reward = _reward;
         tokenClaimPeriod = _tokenClaimPeriod;
@@ -92,11 +87,14 @@ contract Staking is Ownable {
         lastUpdateTime = block.timestamp;
     }
 
-    function stake(uint256 amount, uint256 _lockDuration) external {
+    function stake(uint256 amount, uint256 lockDuration) external {
         tokenMain.safeTransferFrom(msg.sender, address(this), amount);
         updateValues();
-        uint256 lockDuration = _lockDuration.min(MAX_LOCK_DURATION); // in case _duration longer than MAX_LOCK
-        lockDuration = lockDuration.max(MIN_LOCK_DURATION); // in case _duration shorter than MIN_LOCK_DURATION
+        require(
+            lockDuration >= MIN_LOCK_DURATION &&
+                lockDuration <= MAX_LOCK_DURATION,
+            "Lock duration incorrect"
+        );
         uint256 weight = _getWeight(amount, lockDuration);
         _stakes[msg.sender][stakeId] = StakeInfo({
             amount: amount,
@@ -113,7 +111,7 @@ contract Staking is Ownable {
         _stakeHolders[msg.sender].staked += amount;
         _stakeHolders[msg.sender].stakedWithWeight += weight;
 
-        tokenStake.mint(msg.sender, _getWeight(amount, lockDuration));
+        _mint(msg.sender, weight);
     }
 
     function unstake(uint256 _stakeId) external {
@@ -138,14 +136,14 @@ contract Staking is Ownable {
         totalStaked -= stakeInfo.amount;
         tokenMain.safeTransfer(msg.sender, stakeInfo.amount);
 
-        tokenStake.burnFrom(msg.sender, weight);
+        _burn(msg.sender, weight);
 
         //claim rewards
         uint256 awardToClaim = calculateAvailableRewards(msg.sender);
 
         tokenReward.mint(msg.sender, awardToClaim);
 
-        stakeHolder.rewardMissed += awardToClaim * PRECISION;
+        // stakeHolder.rewardMissed += awardToClaim * PRECISION;
 
         rewardProduced += awardToClaim;
     }
@@ -234,13 +232,6 @@ contract Staking is Ownable {
     {
         StakeHolder storage stakeHolder = _stakeHolders[stakeHolderAddress];
 
-        console.log(
-            "Tps: %s, StakedWithWeight: %s, Reward missed: %s",
-            tps,
-            stakeHolder.stakedWithWeight,
-            stakeHolder.rewardMissed
-        );
-
         return
             (tps *
                 stakeHolder.stakedWithWeight +
@@ -271,4 +262,11 @@ contract Staking is Ownable {
                     ((PRECISION * lockDuration) / MAX_LOCK_DURATION))) /
             PRECISION;
     }
+
+    // function _getValidStakes(address stakeHolder) private {
+    //     EnumerableSet.UintSet memory stakes = _validStakes[stakeHolder];
+    //     for (uint256 i = 0; i < stakes.length(); i++) {
+    //         results.append(set.get(i));
+    //     }
+    // }
 }

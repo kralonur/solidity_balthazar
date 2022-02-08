@@ -9,7 +9,6 @@ describe("Staking", function () {
     let accounts: SignerWithAddress[];
     let owner: SignerWithAddress;
     let tokenMain: ERC20Token;
-    let tokenStake: ERC20NoTransfer;
     let tokenReward: ERC20NoTransfer;
     let staking: Staking;
     const MINTER_ROLE = ethers.utils.id("MINTER_ROLE");
@@ -22,12 +21,11 @@ describe("Staking", function () {
 
     beforeEach(async function () {
         tokenMain = await getTokenContract(owner, "BGG", "BGG");
-        tokenStake = await getNoTransferTokenContract(owner, "SBGG", "SBGG");
         tokenReward = await getNoTransferTokenContract(owner, "EBGG", "EBGG");
-        staking = await getStakingContract(owner, tokenMain.address, tokenStake.address, tokenReward.address, ethers.utils.parseEther("100"), 60, (7 * (60 * 60 * 24)));
+        staking = await getStakingContract(owner, tokenMain.address, tokenReward.address, ethers.utils.parseEther("100"), 60, (7 * (60 * 60 * 24)));
 
-        await tokenStake.grantRole(MINTER_ROLE, staking.address);
-        await tokenStake.grantRole(BURNER_ROLE, staking.address);
+        await staking.grantRole(MINTER_ROLE, owner.address);
+        await staking.grantRole(BURNER_ROLE, owner.address);
         await tokenReward.grantRole(MINTER_ROLE, staking.address);
         await tokenReward.grantRole(BURNER_ROLE, staking.address);
     });
@@ -47,11 +45,11 @@ describe("Staking", function () {
         await tokenMain.connect(accounts[1]).approve(staking.address, stakeHolderSecondAmount);
 
         await expect(await staking.stake(stakeHolderFirstAmount, stakeHolderFirstDuration))
-            .to.emit(tokenStake, "Transfer")
+            .to.emit(staking, "Transfer")
             .withArgs(ethers.constants.AddressZero, owner.address, ethers.utils.parseEther("138.461538461538461500"));
 
         await expect(await staking.connect(accounts[1]).stake(stakeHolderSecondAmount, stakeHolderSecondDuration))
-            .to.emit(tokenStake, "Transfer")
+            .to.emit(staking, "Transfer")
             .withArgs(ethers.constants.AddressZero, accounts[1].address, ethers.utils.parseEther("276.923076923076923000"));
 
     });
@@ -70,7 +68,8 @@ describe("Staking", function () {
         await tokenMain.mint(accounts[1].address, stakeHolderSecondAmount);
         await tokenMain.connect(accounts[1]).approve(staking.address, stakeHolderSecondAmount);
 
-        await staking.stake(stakeHolderFirstAmount, stakeHolderFirstDuration)
+        await staking.stake(stakeHolderFirstAmount.div(2), stakeHolderFirstDuration);
+        await staking.stake(stakeHolderFirstAmount.div(2), stakeHolderFirstDuration);
 
         await staking.connect(accounts[1]).stake(stakeHolderSecondAmount, stakeHolderSecondDuration);
 
@@ -114,23 +113,19 @@ describe("Staking", function () {
         await simulateTimePassed((7 * 20) * (60 * 60 * 24)); // 20 weeks passed
 
         // unstake holder 1
-        // approve staking address to burn SBGG tokens
-        await tokenStake.approve(staking.address, ethers.utils.parseEther("138.461538461538461500"));
         await expect(await staking.unstake(0))
             .to.emit(tokenReward, "Transfer")
             .withArgs(ethers.constants.AddressZero, owner.address, ethers.utils.parseEther("666.666666666663729045"))
-            .to.emit(tokenStake, "Transfer")
+            .to.emit(staking, "Transfer")
             .withArgs(owner.address, ethers.constants.AddressZero, ethers.utils.parseEther("138.461538461538461500"))
             .to.emit(tokenMain, "Transfer")
             .withArgs(staking.address, owner.address, stakeHolderFirstAmount);
 
         // unstake holder 2
-        // approve staking address to burn SBGG tokens
-        await tokenStake.connect(accounts[1]).approve(staking.address, ethers.utils.parseEther("276.923076923076923000"));
         await expect(await staking.connect(accounts[1]).unstake(1))
             .to.emit(tokenReward, "Transfer")
             .withArgs(ethers.constants.AddressZero, accounts[1].address, ethers.utils.parseEther("1333.333333333327458091"))
-            .to.emit(tokenStake, "Transfer")
+            .to.emit(staking, "Transfer")
             .withArgs(accounts[1].address, ethers.constants.AddressZero, ethers.utils.parseEther("276.923076923076923000"))
             .to.emit(tokenMain, "Transfer")
             .withArgs(staking.address, accounts[1].address, stakeHolderSecondAmount);
@@ -157,9 +152,9 @@ async function getNoTransferTokenContract(owner: SignerWithAddress, tokenName: s
     return contract;
 }
 
-async function getStakingContract(owner: SignerWithAddress, addressTokenMain: string, addressTokenStake: string, addressTokenReward: string, reward: BigNumberish, tokenClaimPeriod: BigNumberish, duration: BigNumberish) {
+async function getStakingContract(owner: SignerWithAddress, addressTokenMain: string, addressTokenReward: string, reward: BigNumberish, tokenClaimPeriod: BigNumberish, duration: BigNumberish) {
     const factory = new Staking__factory(owner);
-    const contract = await factory.deploy(addressTokenMain, addressTokenStake, addressTokenReward, reward, tokenClaimPeriod, duration);
+    const contract = await factory.deploy(addressTokenMain, addressTokenReward, reward, tokenClaimPeriod, duration);
     await contract.deployed();
 
     return contract;
