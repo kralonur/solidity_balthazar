@@ -1,0 +1,14 @@
+node_modules
+.env
+coverage
+coverage.json
+typechain
+.eslintrc.js
+.eslintignore
+.prettierignore
+.solhint.json
+.solhintignore
+
+#Hardhat files
+cache
+artifacts
