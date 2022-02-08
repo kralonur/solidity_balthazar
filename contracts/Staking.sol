@@ -22,6 +22,8 @@ contract Staking is Ownable {
 
     /// Total staked to the contract
     uint256 public totalStaked;
+    /// Total staked with weight
+    uint256 public totalStakedWithWeight;
     /// Total reward produced
     uint256 public rewardProduced;
     /// Reward to share between stake holders
@@ -62,6 +64,7 @@ contract Staking is Ownable {
      */
     struct StakeHolder {
         uint256 staked;
+        uint256 stakedWithWeight;
         uint256 availableReward;
         uint256 rewardMissed;
     }
@@ -94,6 +97,7 @@ contract Staking is Ownable {
         updateValues();
         uint256 lockDuration = _lockDuration.min(MAX_LOCK_DURATION); // in case _duration longer than MAX_LOCK
         lockDuration = lockDuration.max(MIN_LOCK_DURATION); // in case _duration shorter than MIN_LOCK_DURATION
+        uint256 weight = _getWeight(amount, lockDuration);
         _stakes[msg.sender][stakeId] = StakeInfo({
             amount: amount,
             stakeTime: block.timestamp,
@@ -102,10 +106,12 @@ contract Staking is Ownable {
         });
         _validStakes[msg.sender].add(stakeId++);
         totalStaked += amount;
+        totalStakedWithWeight += weight;
         _stakeHolders[msg.sender].rewardMissed += _calculateMissedRewards(
-            amount
+            weight
         );
         _stakeHolders[msg.sender].staked += amount;
+        _stakeHolders[msg.sender].stakedWithWeight += weight;
 
         tokenStake.mint(msg.sender, _getWeight(amount, lockDuration));
     }
@@ -116,11 +122,17 @@ contract Staking is Ownable {
         updateValues();
         stakeHolder.availableReward +=
             tps *
-            stakeHolder.staked -
+            stakeHolder.stakedWithWeight -
             stakeHolder.rewardMissed;
         stakeInfo.status = StakeStatus.UNSTAKED;
         stakeHolder.staked -= stakeInfo.amount;
-        stakeHolder.rewardMissed = _calculateMissedRewards(stakeHolder.staked);
+        stakeHolder.stakedWithWeight -= _getWeight(
+            stakeInfo.amount,
+            stakeInfo.unstakeTime - stakeInfo.stakeTime
+        );
+        stakeHolder.rewardMissed = _calculateMissedRewards(
+            stakeHolder.stakedWithWeight
+        );
         _validStakes[msg.sender].remove(_stakeId);
         totalStaked -= stakeInfo.amount;
         tokenMain.safeTransfer(msg.sender, stakeInfo.amount);
@@ -190,12 +202,12 @@ contract Staking is Ownable {
      * @param passedTime The passed time to calculate tps
      */
     function calculateTps(uint256 passedTime) public view returns (uint256) {
-        if (totalStaked == 0) return 0;
+        if (totalStakedWithWeight == 0) return 0;
 
         return
             tps +
             ((reward * PRECISION * tokenClaimPeriod) /
-                (totalStaked * duration)) *
+                (totalStakedWithWeight * duration)) *
             passedTime;
     }
 
@@ -211,15 +223,15 @@ contract Staking is Ownable {
         StakeHolder storage stakeHolder = _stakeHolders[stakeHolderAddress];
 
         console.log(
-            "Tps: %s, Staked: %s, Reward missed: %s",
+            "Tps: %s, StakedWithWeight: %s, Reward missed: %s",
             tps,
-            stakeHolder.staked,
+            stakeHolder.stakedWithWeight,
             stakeHolder.rewardMissed
         );
 
         return
             (tps *
-                stakeHolder.staked +
+                stakeHolder.stakedWithWeight +
                 stakeHolder.availableReward -
                 stakeHolder.rewardMissed) / PRECISION;
     }

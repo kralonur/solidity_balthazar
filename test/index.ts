@@ -77,20 +77,20 @@ describe("Staking", function () {
         await simulateTimePassed((7 * 10) * (60 * 60 * 24)); // 10 weeks passed
         await expect(await staking.claimRewards())
             .to.emit(tokenReward, "Transfer")
-            .withArgs(ethers.constants.AddressZero, owner.address, ethers.utils.parseEther("333.333333333332640000"));
+            .withArgs(ethers.constants.AddressZero, owner.address, ethers.utils.parseEther("333.333333333331864522"));
 
         await simulateTimePassed((7 * 5) * (60 * 60 * 24)); // 5 weeks passed (15 total)
         await expect(await staking.connect(accounts[1]).claimRewards())
             .to.emit(tokenReward, "Transfer")
-            .withArgs(ethers.constants.AddressZero, accounts[1].address, ethers.utils.parseEther("999.999999999997920000"));
+            .withArgs(ethers.constants.AddressZero, accounts[1].address, ethers.utils.parseEther("999.999999999995593568"));
 
         await simulateTimePassed((7 * 5) * (60 * 60 * 24)); // 5 weeks passed (20 total)
         await expect(await staking.claimRewards())
             .to.emit(tokenReward, "Transfer")
-            .withArgs(ethers.constants.AddressZero, owner.address, ethers.utils.parseEther("333.333333333332640000"));
+            .withArgs(ethers.constants.AddressZero, owner.address, ethers.utils.parseEther("333.333333333331864523"));
         await expect(await staking.connect(accounts[1]).claimRewards())
             .to.emit(tokenReward, "Transfer")
-            .withArgs(ethers.constants.AddressZero, accounts[1].address, ethers.utils.parseEther("333.333333333332640000"));
+            .withArgs(ethers.constants.AddressZero, accounts[1].address, ethers.utils.parseEther("333.333333333331864523"));
 
     });
 });

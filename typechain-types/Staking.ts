@@ -20,24 +20,38 @@ import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 export declare namespace Staking {
   export type StakeHolderStruct = {
     staked: BigNumberish;
+    stakedWithWeight: BigNumberish;
     availableReward: BigNumberish;
     rewardMissed: BigNumberish;
   };
 
-  export type StakeHolderStructOutput = [BigNumber, BigNumber, BigNumber] & {
+  export type StakeHolderStructOutput = [
+    BigNumber,
+    BigNumber,
+    BigNumber,
+    BigNumber
+  ] & {
     staked: BigNumber;
+    stakedWithWeight: BigNumber;
     availableReward: BigNumber;
     rewardMissed: BigNumber;
   };
 
   export type StakeInfoStruct = {
     amount: BigNumberish;
+    stakeTime: BigNumberish;
     unstakeTime: BigNumberish;
     status: BigNumberish;
   };
 
-  export type StakeInfoStructOutput = [BigNumber, BigNumber, number] & {
+  export type StakeInfoStructOutput = [
+    BigNumber,
+    BigNumber,
+    BigNumber,
+    number
+  ] & {
     amount: BigNumber;
+    stakeTime: BigNumber;
     unstakeTime: BigNumber;
     status: number;
   };
@@ -68,6 +82,7 @@ export interface StakingInterface extends utils.Interface {
     "tokenReward()": FunctionFragment;
     "tokenStake()": FunctionFragment;
     "totalStaked()": FunctionFragment;
+    "totalStakedWithWeight()": FunctionFragment;
     "tps()": FunctionFragment;
     "transferOwnership(address)": FunctionFragment;
     "unstake(uint256)": FunctionFragment;
@@ -142,6 +157,10 @@ export interface StakingInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "totalStaked",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "totalStakedWithWeight",
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "tps", values?: undefined): string;
@@ -220,6 +239,10 @@ export interface StakingInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "tokenStake", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "totalStaked",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "totalStakedWithWeight",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "tps", data: BytesLike): Result;
@@ -346,6 +369,8 @@ export interface Staking extends BaseContract {
 
     totalStaked(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    totalStakedWithWeight(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     tps(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     transferOwnership(
@@ -433,6 +458,8 @@ export interface Staking extends BaseContract {
 
   totalStaked(overrides?: CallOverrides): Promise<BigNumber>;
 
+  totalStakedWithWeight(overrides?: CallOverrides): Promise<BigNumber>;
+
   tps(overrides?: CallOverrides): Promise<BigNumber>;
 
   transferOwnership(
@@ -515,6 +542,8 @@ export interface Staking extends BaseContract {
     tokenStake(overrides?: CallOverrides): Promise<string>;
 
     totalStaked(overrides?: CallOverrides): Promise<BigNumber>;
+
+    totalStakedWithWeight(overrides?: CallOverrides): Promise<BigNumber>;
 
     tps(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -610,6 +639,8 @@ export interface Staking extends BaseContract {
 
     totalStaked(overrides?: CallOverrides): Promise<BigNumber>;
 
+    totalStakedWithWeight(overrides?: CallOverrides): Promise<BigNumber>;
+
     tps(overrides?: CallOverrides): Promise<BigNumber>;
 
     transferOwnership(
@@ -697,6 +728,10 @@ export interface Staking extends BaseContract {
     tokenStake(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     totalStaked(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    totalStakedWithWeight(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     tps(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
