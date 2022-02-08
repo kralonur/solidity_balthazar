@@ -93,6 +93,49 @@ describe("Staking", function () {
             .withArgs(ethers.constants.AddressZero, accounts[1].address, ethers.utils.parseEther("333.333333333331864523"));
 
     });
+
+    it("Should unstake", async function () {
+        const stakeHolderFirstAmount = ethers.utils.parseEther("100");
+        const stakeHolderFirstDuration = (60 * 60 * 24 * 7 * 20); // 20 weeks
+        const stakeHolderSecondAmount = ethers.utils.parseEther("200");
+        const stakeHolderSecondDuration = (60 * 60 * 24 * 7 * 20); // 20 weeks
+
+        // stake holder 1 mint and approve 
+        await tokenMain.mint(owner.address, stakeHolderFirstAmount);
+        await tokenMain.approve(staking.address, stakeHolderFirstAmount);
+
+        // stake holder 2 mint and approve 
+        await tokenMain.mint(accounts[1].address, stakeHolderSecondAmount);
+        await tokenMain.connect(accounts[1]).approve(staking.address, stakeHolderSecondAmount);
+
+        await staking.stake(stakeHolderFirstAmount, stakeHolderFirstDuration)
+        await staking.connect(accounts[1]).stake(stakeHolderSecondAmount, stakeHolderSecondDuration);
+
+        await simulateTimePassed((7 * 20) * (60 * 60 * 24)); // 20 weeks passed
+
+        // unstake holder 1
+        // approve staking address to burn SBGG tokens
+        await tokenStake.approve(staking.address, ethers.utils.parseEther("138.461538461538461500"));
+        await expect(await staking.unstake(0))
+            .to.emit(tokenReward, "Transfer")
+            .withArgs(ethers.constants.AddressZero, owner.address, ethers.utils.parseEther("666.666666666663729045"))
+            .to.emit(tokenStake, "Transfer")
+            .withArgs(owner.address, ethers.constants.AddressZero, ethers.utils.parseEther("138.461538461538461500"))
+            .to.emit(tokenMain, "Transfer")
+            .withArgs(staking.address, owner.address, stakeHolderFirstAmount);
+
+        // unstake holder 2
+        // approve staking address to burn SBGG tokens
+        await tokenStake.connect(accounts[1]).approve(staking.address, ethers.utils.parseEther("276.923076923076923000"));
+        await expect(await staking.connect(accounts[1]).unstake(1))
+            .to.emit(tokenReward, "Transfer")
+            .withArgs(ethers.constants.AddressZero, accounts[1].address, ethers.utils.parseEther("1333.333333333327458091"))
+            .to.emit(tokenStake, "Transfer")
+            .withArgs(accounts[1].address, ethers.constants.AddressZero, ethers.utils.parseEther("276.923076923076923000"))
+            .to.emit(tokenMain, "Transfer")
+            .withArgs(staking.address, accounts[1].address, stakeHolderSecondAmount);
+
+    });
 });
 
 

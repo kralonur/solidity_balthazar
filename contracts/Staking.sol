@@ -120,22 +120,34 @@ contract Staking is Ownable {
         StakeHolder storage stakeHolder = _stakeHolders[msg.sender];
         StakeInfo storage stakeInfo = _stakes[msg.sender][_stakeId];
         updateValues();
+        uint256 weight = _getWeight(
+            stakeInfo.amount,
+            stakeInfo.unstakeTime - stakeInfo.stakeTime
+        );
         stakeHolder.availableReward +=
             tps *
             stakeHolder.stakedWithWeight -
             stakeHolder.rewardMissed;
         stakeInfo.status = StakeStatus.UNSTAKED;
         stakeHolder.staked -= stakeInfo.amount;
-        stakeHolder.stakedWithWeight -= _getWeight(
-            stakeInfo.amount,
-            stakeInfo.unstakeTime - stakeInfo.stakeTime
-        );
+        stakeHolder.stakedWithWeight -= weight;
         stakeHolder.rewardMissed = _calculateMissedRewards(
             stakeHolder.stakedWithWeight
         );
         _validStakes[msg.sender].remove(_stakeId);
         totalStaked -= stakeInfo.amount;
         tokenMain.safeTransfer(msg.sender, stakeInfo.amount);
+
+        tokenStake.burnFrom(msg.sender, weight);
+
+        //claim rewards
+        uint256 awardToClaim = calculateAvailableRewards(msg.sender);
+
+        tokenReward.mint(msg.sender, awardToClaim);
+
+        stakeHolder.rewardMissed += awardToClaim * PRECISION;
+
+        rewardProduced += awardToClaim;
     }
 
     function claimRewards() external {
