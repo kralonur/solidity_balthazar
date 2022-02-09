@@ -40,17 +40,10 @@ contract Staking is ERC20NoTransfer, Ownable {
 
     uint256 public stakeId;
 
-    enum StakeStatus {
-        INVALID,
-        ON_STAKE,
-        UNSTAKED
-    }
-
     struct StakeInfo {
         uint256 amount;
         uint256 stakeTime;
         uint256 unstakeTime;
-        StakeStatus status;
     }
 
     /**
@@ -97,8 +90,7 @@ contract Staking is ERC20NoTransfer, Ownable {
         _stakes[msg.sender][stakeId] = StakeInfo({
             amount: amount,
             stakeTime: block.timestamp,
-            unstakeTime: block.timestamp + lockDuration,
-            status: StakeStatus.ON_STAKE
+            unstakeTime: block.timestamp + lockDuration
         });
         _validStakes[msg.sender].add(stakeId++);
         totalStaked += amount;
@@ -123,7 +115,6 @@ contract Staking is ERC20NoTransfer, Ownable {
             tps *
             stakeHolder.stakedWithWeight -
             stakeHolder.rewardMissed;
-        stakeInfo.status = StakeStatus.UNSTAKED;
         stakeHolder.stakedWithWeight -= weight;
         stakeHolder.rewardMissed = _calculateMissedRewards(
             stakeHolder.stakedWithWeight

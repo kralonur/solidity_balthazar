@@ -34,19 +34,12 @@ export declare namespace Staking {
     amount: BigNumberish;
     stakeTime: BigNumberish;
     unstakeTime: BigNumberish;
-    status: BigNumberish;
   };
 
-  export type StakeInfoStructOutput = [
-    BigNumber,
-    BigNumber,
-    BigNumber,
-    number
-  ] & {
+  export type StakeInfoStructOutput = [BigNumber, BigNumber, BigNumber] & {
     amount: BigNumber;
     stakeTime: BigNumber;
     unstakeTime: BigNumber;
-    status: number;
   };
 }
 
