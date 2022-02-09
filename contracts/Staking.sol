@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IERC20NoTransfer.sol";
+import "./RewardToken.sol";
 import "./ERC20NoTransfer.sol";
 
 contract Staking is ERC20NoTransfer, Ownable {
@@ -14,7 +15,7 @@ contract Staking is ERC20NoTransfer, Ownable {
     /// Main token
     IERC20 public tokenMain;
     /// Reward token
-    IERC20NoTransfer public tokenReward;
+    RewardToken public tokenReward;
 
     /// Total staked to the contract
     uint256 public totalStaked;
@@ -79,7 +80,7 @@ contract Staking is ERC20NoTransfer, Ownable {
         uint256 _duration
     ) ERC20NoTransfer("SBGG", "SBGG") {
         tokenMain = IERC20(addressTokenMain);
-        tokenReward = IERC20NoTransfer(addressTokenReward);
+        tokenReward = RewardToken(addressTokenReward);
         reward = _reward;
         tokenClaimPeriod = _tokenClaimPeriod;
         duration = _duration;

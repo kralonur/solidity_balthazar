@@ -2,14 +2,14 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumberish } from "ethers";
 import { ethers } from "hardhat";
-import { ERC20Token, ERC20Token__factory, ERC20NoTransfer, ERC20NoTransfer__factory, Staking, Staking__factory } from "../typechain-types";
+import { ERC20Token, ERC20Token__factory, RewardToken, RewardToken__factory, Staking, Staking__factory } from "../typechain-types";
 
 
 describe("Staking", function () {
     let accounts: SignerWithAddress[];
     let owner: SignerWithAddress;
     let tokenMain: ERC20Token;
-    let tokenReward: ERC20NoTransfer;
+    let tokenReward: RewardToken;
     let staking: Staking;
     const MINTER_ROLE = ethers.utils.id("MINTER_ROLE");
     const BURNER_ROLE = ethers.utils.id("BURNER_ROLE");
@@ -21,7 +21,7 @@ describe("Staking", function () {
 
     beforeEach(async function () {
         tokenMain = await getTokenContract(owner, "BGG", "BGG");
-        tokenReward = await getNoTransferTokenContract(owner, "EBGG", "EBGG");
+        tokenReward = await getRewardTokenContract(owner, "EBGG", "EBGG", tokenMain.address);
         staking = await getStakingContract(owner, tokenMain.address, tokenReward.address, ethers.utils.parseEther("100"), 60, (7 * (60 * 60 * 24)));
 
         await staking.grantRole(MINTER_ROLE, owner.address);
@@ -167,6 +167,55 @@ describe("Staking", function () {
         expect(await staking.duration())
             .equal(duration);
     });
+
+    it("Should swap reward token to real token", async function () {
+        const stakeHolderFirstAmount = ethers.utils.parseEther("100");
+        const stakeHolderFirstAmountToSwap = ethers.utils.parseEther("666.666666666663729045");
+        const stakeHolderFirstDuration = (60 * 60 * 24 * 7 * 20); // 20 weeks
+        const stakeHolderSecondAmount = ethers.utils.parseEther("200");
+        const stakeHolderSecondAmountToSwap = ethers.utils.parseEther("1333.333333333327458091");
+        const stakeHolderSecondDuration = (60 * 60 * 24 * 7 * 20); // 20 weeks
+
+        // stake holder 1 mint and approve 
+        await tokenMain.mint(owner.address, stakeHolderFirstAmount);
+        await tokenMain.approve(staking.address, stakeHolderFirstAmount);
+
+        // stake holder 2 mint and approve 
+        await tokenMain.mint(accounts[1].address, stakeHolderSecondAmount);
+        await tokenMain.connect(accounts[1]).approve(staking.address, stakeHolderSecondAmount);
+
+        await staking.stake(stakeHolderFirstAmount, stakeHolderFirstDuration)
+        await staking.connect(accounts[1]).stake(stakeHolderSecondAmount, stakeHolderSecondDuration);
+
+        await simulateTimePassed((7 * 20) * (60 * 60 * 24)); // 20 weeks passed
+
+        await expect(staking.unstake(100)) // id 100 does not exist
+            .to.revertedWith("Stake is unvalid");
+
+        // unstake holder 1
+        await staking.unstake(0);
+
+        // unstake holder 2
+        await staking.connect(accounts[1]).unstake(1);
+
+        await simulateTimePassed((7 * 53) * (60 * 60 * 24)); // 53 weeks passed (more than a year)
+
+        // Mint enough token to reward for swap
+        await tokenMain.mint(tokenReward.address, stakeHolderFirstAmountToSwap.add(stakeHolderSecondAmountToSwap));
+
+        await expect(await tokenReward.swap())
+            .to.emit(tokenMain, "Transfer")
+            .withArgs(tokenReward.address, owner.address, stakeHolderFirstAmountToSwap)
+            .to.emit(tokenReward, "Transfer")
+            .withArgs(owner.address, ethers.constants.AddressZero, stakeHolderFirstAmountToSwap);
+
+        await expect(await tokenReward.connect(accounts[1]).swap())
+            .to.emit(tokenMain, "Transfer")
+            .withArgs(tokenReward.address, accounts[1].address, stakeHolderSecondAmountToSwap)
+            .to.emit(tokenReward, "Transfer")
+            .withArgs(accounts[1].address, ethers.constants.AddressZero, stakeHolderSecondAmountToSwap);
+
+    });
 });
 
 
@@ -180,9 +229,9 @@ async function getTokenContract(owner: SignerWithAddress, tokenName: string, tok
     return contract;
 }
 
-async function getNoTransferTokenContract(owner: SignerWithAddress, tokenName: string, tokenSymbol: string) {
-    const factory = new ERC20NoTransfer__factory(owner);
-    const contract = await factory.deploy(tokenName, tokenSymbol);
+async function getRewardTokenContract(owner: SignerWithAddress, tokenName: string, tokenSymbol: string, addressTokenMain: string) {
+    const factory = new RewardToken__factory(owner);
+    const contract = await factory.deploy(tokenName, tokenSymbol, addressTokenMain);
     await contract.deployed();
 
     return contract;

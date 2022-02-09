@@ -13,6 +13,7 @@ export type { IERC165 } from "./IERC165";
 export type { ERC20NoTransfer } from "./ERC20NoTransfer";
 export type { ERC20Token } from "./ERC20Token";
 export type { IERC20NoTransfer } from "./IERC20NoTransfer";
+export type { RewardToken } from "./RewardToken";
 export type { Staking } from "./Staking";
 
 export { AccessControl__factory } from "./factories/AccessControl__factory";
@@ -27,4 +28,5 @@ export { IERC165__factory } from "./factories/IERC165__factory";
 export { ERC20NoTransfer__factory } from "./factories/ERC20NoTransfer__factory";
 export { ERC20Token__factory } from "./factories/ERC20Token__factory";
 export { IERC20NoTransfer__factory } from "./factories/IERC20NoTransfer__factory";
+export { RewardToken__factory } from "./factories/RewardToken__factory";
 export { Staking__factory } from "./factories/Staking__factory";
