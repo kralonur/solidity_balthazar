@@ -38,8 +38,15 @@ contract Staking is ERC20NoTransfer, Ownable {
     uint256 public constant MIN_LOCK_DURATION = 10 minutes;
     uint256 public constant MAX_LOCK_DURATION = 52 weeks;
 
+    /// Latest stake id
     uint256 public stakeId;
 
+    /**
+     * @dev This struct holds information about the stake
+     * @param amount Amount staked
+     * @param stakeTime Timestamp that staked
+     * @param unstakeTime Timestamp to unstake
+     */
     struct StakeInfo {
         uint256 amount;
         uint256 stakeTime;
@@ -48,6 +55,7 @@ contract Staking is ERC20NoTransfer, Ownable {
 
     /**
      * @dev This struct holds information about the stake holder
+     * @param stakedWithWeight Stake amount with weight
      * @param availableReward Available reward for the stake holder
      * @param rewardMissed Missed reward for the stake holder
      */
@@ -59,8 +67,9 @@ contract Staking is ERC20NoTransfer, Ownable {
 
     /// A mapping for storing stake holders
     mapping(address => StakeHolder) private _stakeHolders;
-
+    /// A mapping for storing stakes with stakeholder and stake id
     mapping(address => mapping(uint256 => StakeInfo)) private _stakes;
+    /// A mapping for storing current valid stakes on contract
     mapping(address => EnumerableSet.UintSet) private _validStakes;
 
     constructor(
@@ -78,6 +87,11 @@ contract Staking is ERC20NoTransfer, Ownable {
         lastUpdateTime = block.timestamp;
     }
 
+    /**
+     * @dev Stakes the amount for the behalf of the stake holder
+     * @param amount The amount to stake
+     * @param lockDuration The duration of funds to lock
+     */
     function stake(uint256 amount, uint256 lockDuration) external {
         tokenMain.safeTransferFrom(msg.sender, address(this), amount);
         updateValues();
@@ -103,6 +117,10 @@ contract Staking is ERC20NoTransfer, Ownable {
         _mint(msg.sender, weight);
     }
 
+    /**
+     * @dev Unstakes the amount for the behalf of the stake holder
+     * @param _stakeId The id of stake to unstake
+     */
     function unstake(uint256 _stakeId) external {
         require(
             _validStakes[msg.sender].contains(_stakeId),
@@ -137,6 +155,9 @@ contract Staking is ERC20NoTransfer, Ownable {
         rewardProduced += awardToClaim;
     }
 
+    /**
+     * @dev Claims the rewards for the behalf of the stake holder
+     */
     function claimRewards() external {
         updateValues();
         StakeHolder storage stakeHolder = _stakeHolders[msg.sender];
@@ -178,12 +199,38 @@ contract Staking is ERC20NoTransfer, Ownable {
         return (stakeHolder);
     }
 
+    /**
+     * @dev Returns the stake information
+     * @param stakeHolder The address of the stakeholder
+     * @param _stakeId The id of the stake
+     * @return stake information
+     */
     function getStakeInfo(address stakeHolder, uint256 _stakeId)
         external
         view
         returns (StakeInfo memory)
     {
         return _stakes[stakeHolder][_stakeId];
+    }
+
+    /**
+     * @dev Returns the total stake amount by the stakeholder
+     * @param stakeHolder The address of the stakeholder
+     * @return total stake amount by the stakeholder
+     */
+    function calculateTotalStakedByStakeholder(address stakeHolder)
+        external
+        view
+        returns (uint256)
+    {
+        uint256[] memory validStakes = _getValidStakes(stakeHolder);
+        uint256 totalStakeByStakeholder;
+        for (uint256 i = 0; i < validStakes.length; i++) {
+            totalStakeByStakeholder += _stakes[stakeHolder][validStakes[i]]
+                .amount;
+        }
+
+        return totalStakeByStakeholder;
     }
 
     /**
@@ -199,6 +246,7 @@ contract Staking is ERC20NoTransfer, Ownable {
     /**
      * @dev Calculates the tps, see{tps}
      * @param passedTime The passed time to calculate tps
+     * @return calculated tps
      */
     function calculateTps(uint256 passedTime) public view returns (uint256) {
         if (totalStakedWithWeight == 0) return 0;
@@ -213,6 +261,7 @@ contract Staking is ERC20NoTransfer, Ownable {
     /**
      * @dev Calculates the available rewards for the stake holder
      * @param stakeHolderAddress The address of the stake holder
+     * @return available rewards
      */
     function calculateAvailableRewards(address stakeHolderAddress)
         public
@@ -229,17 +278,11 @@ contract Staking is ERC20NoTransfer, Ownable {
     }
 
     /**
-     * @dev Calculates the missed rewards for the stake holder
+     * @dev Calculates the weight
      * @param amount The amount of tokens
+     * @param lockDuration The duration of funds to lock
+     * @return calculated weight
      */
-    function _calculateMissedRewards(uint256 amount)
-        private
-        view
-        returns (uint256)
-    {
-        return amount * tps;
-    }
-
     function _getWeight(uint256 amount, uint256 lockDuration)
         private
         pure
@@ -252,8 +295,26 @@ contract Staking is ERC20NoTransfer, Ownable {
             PRECISION;
     }
 
-    function getValidStakes(address stakeHolder)
-        public
+    /**
+     * @dev Calculates the missed rewards for the stake holder
+     * @param amount The amount of tokens
+     * @return missed rewards
+     */
+    function _calculateMissedRewards(uint256 amount)
+        private
+        view
+        returns (uint256)
+    {
+        return amount * tps;
+    }
+
+    /**
+     * @dev Returns array of valid stakes
+     * @param stakeHolder The address of the stakeholder
+     * @return array of valid stakes
+     */
+    function _getValidStakes(address stakeHolder)
+        private
         view
         returns (uint256[] memory)
     {
@@ -264,20 +325,5 @@ contract Staking is ERC20NoTransfer, Ownable {
             set[i] = stakes.at(i);
         }
         return set;
-    }
-
-    function _calculateTotalStakedByStakeholder(address stakeHolder)
-        private
-        view
-        returns (uint256)
-    {
-        uint256[] memory validStakes = getValidStakes(stakeHolder);
-        uint256 totalStakeByStakeholder;
-        for (uint256 i = 0; i < validStakes.length; i++) {
-            totalStakeByStakeholder += _stakes[stakeHolder][validStakes[i]]
-                .amount;
-        }
-
-        return totalStakeByStakeholder;
     }
 }
