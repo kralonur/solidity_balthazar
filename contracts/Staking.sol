@@ -104,6 +104,10 @@ contract Staking is ERC20NoTransfer, Ownable {
     }
 
     function unstake(uint256 _stakeId) external {
+        require(
+            _validStakes[msg.sender].contains(_stakeId),
+            "Stake is unvalid"
+        );
         StakeHolder storage stakeHolder = _stakeHolders[msg.sender];
         StakeInfo storage stakeInfo = _stakes[msg.sender][_stakeId];
         updateValues();
