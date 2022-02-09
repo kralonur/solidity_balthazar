@@ -20,6 +20,7 @@ contract RewardToken is ERC20, AccessControl {
     }
 
     mapping(address => Claim[]) private _claims;
+    mapping(address => uint256) private _latestClaim;
 
     constructor(
         string memory name,
@@ -71,11 +72,15 @@ contract RewardToken is ERC20, AccessControl {
 
     function swap() external {
         uint256 amountToSwap;
-        for (uint256 i = 0; i < _claims[msg.sender].length; i++) {
+        for (
+            uint256 i = _latestClaim[msg.sender];
+            i < _claims[msg.sender].length;
+            i++
+        ) {
             Claim storage currentClaim = _claims[msg.sender][i];
             if (block.timestamp > currentClaim.claimUnlockTime) {
                 amountToSwap += currentClaim.claimAmount;
-                currentClaim.claimAmount = 0;
+                _latestClaim[msg.sender] = i;
             }
         }
         if (amountToSwap > 0) {
