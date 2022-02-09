@@ -49,8 +49,8 @@ contract Staking is ERC20NoTransfer, Ownable {
      */
     struct StakeInfo {
         uint256 amount;
-        uint256 stakeTime;
-        uint256 unstakeTime;
+        uint128 stakeTime;
+        uint128 unstakeTime;
     }
 
     /**
@@ -103,8 +103,8 @@ contract Staking is ERC20NoTransfer, Ownable {
         uint256 weight = _getWeight(amount, lockDuration);
         _stakes[msg.sender][stakeId] = StakeInfo({
             amount: amount,
-            stakeTime: block.timestamp,
-            unstakeTime: block.timestamp + lockDuration
+            stakeTime: uint128(block.timestamp),
+            unstakeTime: uint128(block.timestamp + lockDuration)
         });
         _validStakes[msg.sender].add(stakeId++);
         totalStaked += amount;
