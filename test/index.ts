@@ -187,10 +187,15 @@ describe("Staking", function () {
         await staking.stake(stakeHolderFirstAmount, stakeHolderFirstDuration)
         await staking.connect(accounts[1]).stake(stakeHolderSecondAmount, stakeHolderSecondDuration);
 
-        await simulateTimePassed((7 * 20) * (60 * 60 * 24)); // 20 weeks passed
+        await simulateTimePassed((7 * 10) * (60 * 60 * 24)); // 10 weeks passed
 
-        await expect(staking.unstake(100)) // id 100 does not exist
-            .to.revertedWith("Stake is unvalid");
+        await staking.claimRewards();
+
+        await simulateTimePassed((7 * 5) * (60 * 60 * 24)); // 5 weeks passed
+
+        await staking.claimRewards();
+
+        await simulateTimePassed((7 * 5) * (60 * 60 * 24)); // 5 weeks passed
 
         // unstake holder 1
         await staking.unstake(0);

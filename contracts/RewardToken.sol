@@ -72,6 +72,7 @@ contract RewardToken is ERC20, AccessControl {
 
     function swap() external {
         uint256 amountToSwap;
+        console.log(balanceOf(msg.sender));
         for (
             uint256 i = _latestClaim[msg.sender];
             i < _claims[msg.sender].length;
