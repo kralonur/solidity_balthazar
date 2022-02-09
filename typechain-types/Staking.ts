@@ -400,19 +400,25 @@ export interface StakingInterface extends utils.Interface {
 
   events: {
     "Approval(address,address,uint256)": EventFragment;
+    "Claim(address,uint256)": EventFragment;
     "OwnershipTransferred(address,address)": EventFragment;
     "RoleAdminChanged(bytes32,bytes32,bytes32)": EventFragment;
     "RoleGranted(bytes32,address,address)": EventFragment;
     "RoleRevoked(bytes32,address,address)": EventFragment;
+    "Stake(uint256)": EventFragment;
     "Transfer(address,address,uint256)": EventFragment;
+    "Unstake(uint256)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "Approval"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "Claim"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OwnershipTransferred"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "RoleAdminChanged"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "RoleGranted"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "RoleRevoked"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "Stake"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Transfer"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "Unstake"): EventFragment;
 }
 
 export type ApprovalEvent = TypedEvent<
@@ -421,6 +427,13 @@ export type ApprovalEvent = TypedEvent<
 >;
 
 export type ApprovalEventFilter = TypedEventFilter<ApprovalEvent>;
+
+export type ClaimEvent = TypedEvent<
+  [string, BigNumber],
+  { stakeHolder: string; amount: BigNumber }
+>;
+
+export type ClaimEventFilter = TypedEventFilter<ClaimEvent>;
 
 export type OwnershipTransferredEvent = TypedEvent<
   [string, string],
@@ -452,12 +465,20 @@ export type RoleRevokedEvent = TypedEvent<
 
 export type RoleRevokedEventFilter = TypedEventFilter<RoleRevokedEvent>;
 
+export type StakeEvent = TypedEvent<[BigNumber], { stakeId: BigNumber }>;
+
+export type StakeEventFilter = TypedEventFilter<StakeEvent>;
+
 export type TransferEvent = TypedEvent<
   [string, string, BigNumber],
   { from: string; to: string; value: BigNumber }
 >;
 
 export type TransferEventFilter = TypedEventFilter<TransferEvent>;
+
+export type UnstakeEvent = TypedEvent<[BigNumber], { stakeId: BigNumber }>;
+
+export type UnstakeEventFilter = TypedEventFilter<UnstakeEvent>;
 
 export interface Staking extends BaseContract {
   contractName: "Staking";
@@ -1066,6 +1087,12 @@ export interface Staking extends BaseContract {
       value?: null
     ): ApprovalEventFilter;
 
+    "Claim(address,uint256)"(
+      stakeHolder?: string | null,
+      amount?: null
+    ): ClaimEventFilter;
+    Claim(stakeHolder?: string | null, amount?: null): ClaimEventFilter;
+
     "OwnershipTransferred(address,address)"(
       previousOwner?: string | null,
       newOwner?: string | null
@@ -1108,6 +1135,9 @@ export interface Staking extends BaseContract {
       sender?: string | null
     ): RoleRevokedEventFilter;
 
+    "Stake(uint256)"(stakeId?: BigNumberish | null): StakeEventFilter;
+    Stake(stakeId?: BigNumberish | null): StakeEventFilter;
+
     "Transfer(address,address,uint256)"(
       from?: string | null,
       to?: string | null,
@@ -1118,6 +1148,9 @@ export interface Staking extends BaseContract {
       to?: string | null,
       value?: null
     ): TransferEventFilter;
+
+    "Unstake(uint256)"(stakeId?: BigNumberish | null): UnstakeEventFilter;
+    Unstake(stakeId?: BigNumberish | null): UnstakeEventFilter;
   };
 
   estimateGas: {

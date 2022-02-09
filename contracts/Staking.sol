@@ -23,7 +23,7 @@ contract Staking is ERC20NoTransfer, Ownable {
     uint256 public totalStakedWithWeight;
     /// Total reward produced
     uint256 public rewardProduced;
-    /// Reward to share between stake holders
+    /// Reward to share between stakeholders
     uint256 public reward; // default value
     /// Last update time
     uint256 public lastUpdateTime;
@@ -54,9 +54,9 @@ contract Staking is ERC20NoTransfer, Ownable {
     }
 
     /**
-     * @dev This struct holds information about the stake holder
+     * @dev This struct holds information about the stakeholder
      * @param stakedWithWeight Stake amount with weight
-     * @param availableReward Available reward for the stake holder
+     * @param availableReward Available reward for the stakeholder
      * @param rewardMissed Missed reward for the stake holder
      */
     struct StakeHolder {
@@ -65,7 +65,7 @@ contract Staking is ERC20NoTransfer, Ownable {
         uint256 rewardMissed;
     }
 
-    /// A mapping for storing stake holders
+    /// A mapping for storing stakeholders
     mapping(address => StakeHolder) private _stakeHolders;
     /// A mapping for storing stakes with stakeholder and stake id
     mapping(address => mapping(uint256 => StakeInfo)) private _stakes;
@@ -88,7 +88,24 @@ contract Staking is ERC20NoTransfer, Ownable {
     }
 
     /**
-     * @dev Stakes the amount for the behalf of the stake holder
+     * @dev Emitted when stake holder staked tokens
+     * @param stakeId The address of the stakeholder
+     */
+    event Stake(uint256 indexed stakeId);
+    /**
+     * @dev Emitted when stake holder unstaked tokens
+     * @param stakeId The address of the stakeholder
+     */
+    event Unstake(uint256 indexed stakeId);
+    /**
+     * @dev Emitted when stake holder claimed reward tokens
+     * @param stakeHolder The address of the stakeholder
+     * @param amount The amount of reward tokens claimed
+     */
+    event Claim(address indexed stakeHolder, uint256 amount);
+
+    /**
+     * @dev Stakes the amount for the behalf of the stakeholder
      * @param amount The amount to stake
      * @param lockDuration The duration of funds to lock
      */
@@ -115,10 +132,12 @@ contract Staking is ERC20NoTransfer, Ownable {
         _stakeHolders[msg.sender].stakedWithWeight += weight;
 
         _mint(msg.sender, weight);
+
+        emit Stake(stakeId - 1);
     }
 
     /**
-     * @dev Unstakes the amount for the behalf of the stake holder
+     * @dev Unstakes the amount for the behalf of the stakeholder
      * @param _stakeId The id of stake to unstake
      */
     function unstake(uint256 _stakeId) external {
@@ -153,10 +172,12 @@ contract Staking is ERC20NoTransfer, Ownable {
         tokenReward.mint(msg.sender, awardToClaim);
 
         rewardProduced += awardToClaim;
+
+        emit Unstake(_stakeId);
     }
 
     /**
-     * @dev Claims the rewards for the behalf of the stake holder
+     * @dev Claims the rewards for the behalf of the stakeholder
      */
     function claimRewards() external {
         updateValues();
@@ -168,6 +189,8 @@ contract Staking is ERC20NoTransfer, Ownable {
         stakeHolder.rewardMissed += awardToClaim * PRECISION;
 
         rewardProduced += awardToClaim;
+
+        emit Claim(msg.sender, awardToClaim);
     }
 
     /**
