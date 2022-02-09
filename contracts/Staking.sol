@@ -55,12 +55,10 @@ contract Staking is ERC20NoTransfer, Ownable {
 
     /**
      * @dev This struct holds information about the stake holder
-     * @param staked Staked amount by stake holder
      * @param availableReward Available reward for the stake holder
      * @param rewardMissed Missed reward for the stake holder
      */
     struct StakeHolder {
-        uint256 staked;
         uint256 stakedWithWeight;
         uint256 availableReward;
         uint256 rewardMissed;
@@ -108,7 +106,6 @@ contract Staking is ERC20NoTransfer, Ownable {
         _stakeHolders[msg.sender].rewardMissed += _calculateMissedRewards(
             weight
         );
-        _stakeHolders[msg.sender].staked += amount;
         _stakeHolders[msg.sender].stakedWithWeight += weight;
 
         _mint(msg.sender, weight);
@@ -127,7 +124,6 @@ contract Staking is ERC20NoTransfer, Ownable {
             stakeHolder.stakedWithWeight -
             stakeHolder.rewardMissed;
         stakeInfo.status = StakeStatus.UNSTAKED;
-        stakeHolder.staked -= stakeInfo.amount;
         stakeHolder.stakedWithWeight -= weight;
         stakeHolder.rewardMissed = _calculateMissedRewards(
             stakeHolder.stakedWithWeight
@@ -142,8 +138,6 @@ contract Staking is ERC20NoTransfer, Ownable {
         uint256 awardToClaim = calculateAvailableRewards(msg.sender);
 
         tokenReward.mint(msg.sender, awardToClaim);
-
-        // stakeHolder.rewardMissed += awardToClaim * PRECISION;
 
         rewardProduced += awardToClaim;
     }
@@ -263,10 +257,32 @@ contract Staking is ERC20NoTransfer, Ownable {
             PRECISION;
     }
 
-    // function _getValidStakes(address stakeHolder) private {
-    //     EnumerableSet.UintSet memory stakes = _validStakes[stakeHolder];
-    //     for (uint256 i = 0; i < stakes.length(); i++) {
-    //         results.append(set.get(i));
-    //     }
-    // }
+    function getValidStakes(address stakeHolder)
+        public
+        view
+        returns (uint256[] memory)
+    {
+        EnumerableSet.UintSet storage stakes = _validStakes[stakeHolder];
+        uint256[] memory set = new uint256[](stakes.length());
+        for (uint256 i = 0; i < stakes.length(); i++) {
+            console.log(stakes.at(i));
+            set[i] = stakes.at(i);
+        }
+        return set;
+    }
+
+    function _calculateTotalStakedByStakeholder(address stakeHolder)
+        private
+        view
+        returns (uint256)
+    {
+        uint256[] memory validStakes = getValidStakes(stakeHolder);
+        uint256 totalStakeByStakeholder;
+        for (uint256 i = 0; i < validStakes.length; i++) {
+            totalStakeByStakeholder += _stakes[stakeHolder][validStakes[i]]
+                .amount;
+        }
+
+        return totalStakeByStakeholder;
+    }
 }

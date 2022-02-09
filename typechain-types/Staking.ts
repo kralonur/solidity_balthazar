@@ -19,19 +19,12 @@ import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
 export declare namespace Staking {
   export type StakeHolderStruct = {
-    staked: BigNumberish;
     stakedWithWeight: BigNumberish;
     availableReward: BigNumberish;
     rewardMissed: BigNumberish;
   };
 
-  export type StakeHolderStructOutput = [
-    BigNumber,
-    BigNumber,
-    BigNumber,
-    BigNumber
-  ] & {
-    staked: BigNumber;
+  export type StakeHolderStructOutput = [BigNumber, BigNumber, BigNumber] & {
     stakedWithWeight: BigNumber;
     availableReward: BigNumber;
     rewardMissed: BigNumber;
@@ -80,6 +73,7 @@ export interface StakingInterface extends utils.Interface {
     "getRoleAdmin(bytes32)": FunctionFragment;
     "getStakeHolder(address)": FunctionFragment;
     "getStakeInfo(address,uint256)": FunctionFragment;
+    "getValidStakes(address)": FunctionFragment;
     "grantRole(bytes32,address)": FunctionFragment;
     "hasRole(bytes32,address)": FunctionFragment;
     "increaseAllowance(address,uint256)": FunctionFragment;
@@ -175,6 +169,10 @@ export interface StakingInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "getStakeInfo",
     values: [string, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getValidStakes",
+    values: [string]
   ): string;
   encodeFunctionData(
     functionFragment: "grantRole",
@@ -326,6 +324,10 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "getStakeInfo",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getValidStakes",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "grantRole", data: BytesLike): Result;
@@ -566,6 +568,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[Staking.StakeInfoStructOutput]>;
 
+    getValidStakes(
+      stakeHolder: string,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber[]]>;
+
     grantRole(
       role: BytesLike,
       account: string,
@@ -754,6 +761,11 @@ export interface Staking extends BaseContract {
     overrides?: CallOverrides
   ): Promise<Staking.StakeInfoStructOutput>;
 
+  getValidStakes(
+    stakeHolder: string,
+    overrides?: CallOverrides
+  ): Promise<BigNumber[]>;
+
   grantRole(
     role: BytesLike,
     account: string,
@@ -936,6 +948,11 @@ export interface Staking extends BaseContract {
       _stakeId: BigNumberish,
       overrides?: CallOverrides
     ): Promise<Staking.StakeInfoStructOutput>;
+
+    getValidStakes(
+      stakeHolder: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber[]>;
 
     grantRole(
       role: BytesLike,
@@ -1188,6 +1205,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    getValidStakes(
+      stakeHolder: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     grantRole(
       role: BytesLike,
       account: string,
@@ -1382,6 +1404,11 @@ export interface Staking extends BaseContract {
     getStakeInfo(
       stakeHolder: string,
       _stakeId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getValidStakes(
+      stakeHolder: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
