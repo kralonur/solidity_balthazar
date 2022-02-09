@@ -44,6 +44,9 @@ describe("Staking", function () {
         await tokenMain.mint(accounts[1].address, stakeHolderSecondAmount);
         await tokenMain.connect(accounts[1]).approve(staking.address, stakeHolderSecondAmount);
 
+        await expect(staking.stake(stakeHolderFirstAmount, (60 * 60 * 24 * 7 * 53))) // 53 weeks is not allowed
+            .to.revertedWith("Lock duration incorrect");
+
         await expect(await staking.stake(stakeHolderFirstAmount, stakeHolderFirstDuration))
             .to.emit(staking, "Transfer")
             .withArgs(ethers.constants.AddressZero, owner.address, ethers.utils.parseEther("138.461538461538461500"));
@@ -68,8 +71,21 @@ describe("Staking", function () {
         await tokenMain.mint(accounts[1].address, stakeHolderSecondAmount);
         await tokenMain.connect(accounts[1]).approve(staking.address, stakeHolderSecondAmount);
 
-        await staking.stake(stakeHolderFirstAmount.div(2), stakeHolderFirstDuration);
-        await staking.stake(stakeHolderFirstAmount.div(2), stakeHolderFirstDuration);
+        await staking.stake(stakeHolderFirstAmount.div(2), stakeHolderFirstDuration); //id 0
+        expect((await staking.getStakeHolder(owner.address))["stakedWithWeight"])
+            .equal(ethers.utils.parseEther("69.230769230769230750"));
+        expect((await staking.getStakeInfo(owner.address, 0))["amount"])
+            .equal(stakeHolderFirstAmount.div(2));
+        expect((await staking.calculateTotalStakedByStakeholder(owner.address)))
+            .equal(stakeHolderFirstAmount.div(2));
+
+        await staking.stake(stakeHolderFirstAmount.div(2), stakeHolderFirstDuration); //id 1
+        expect((await staking.getStakeHolder(owner.address))["stakedWithWeight"])
+            .equal(ethers.utils.parseEther("138.461538461538461500"));
+        expect((await staking.getStakeInfo(owner.address, 1))["amount"])
+            .equal(stakeHolderFirstAmount.div(2));
+        expect((await staking.calculateTotalStakedByStakeholder(owner.address)))
+            .equal(stakeHolderFirstAmount);
 
         await staking.connect(accounts[1]).stake(stakeHolderSecondAmount, stakeHolderSecondDuration);
 
@@ -112,6 +128,9 @@ describe("Staking", function () {
 
         await simulateTimePassed((7 * 20) * (60 * 60 * 24)); // 20 weeks passed
 
+        await expect(staking.unstake(100)) // id 100 does not exist
+            .to.revertedWith("Stake is unvalid");
+
         // unstake holder 1
         await expect(await staking.unstake(0))
             .to.emit(tokenReward, "Transfer")
@@ -130,6 +149,23 @@ describe("Staking", function () {
             .to.emit(tokenMain, "Transfer")
             .withArgs(staking.address, accounts[1].address, stakeHolderSecondAmount);
 
+    });
+
+    it("Should update parameters", async function () {
+        const reward = ethers.utils.parseEther("200");
+        const tokenClaimPeriod = (1 * (60 * 60)); // 1 hour
+        const duration = (2 * (60 * 60 * 24)); // 1 days
+
+        await staking.setParameters(reward, tokenClaimPeriod, duration);
+
+        expect(ethers.utils.formatEther(await staking.reward()))
+            .equal("200.0");
+
+        expect(await staking.tokenClaimPeriod())
+            .equal(tokenClaimPeriod);
+
+        expect(await staking.duration())
+            .equal(duration);
     });
 });
 

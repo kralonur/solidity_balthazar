@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IERC20NoTransfer.sol";
 import "./ERC20NoTransfer.sol";
-import "hardhat/console.sol";
 
 contract Staking is ERC20NoTransfer, Ownable {
     using SafeERC20 for IERC20;
@@ -344,7 +343,6 @@ contract Staking is ERC20NoTransfer, Ownable {
         EnumerableSet.UintSet storage stakes = _validStakes[stakeHolder];
         uint256[] memory set = new uint256[](stakes.length());
         for (uint256 i = 0; i < stakes.length(); i++) {
-            console.log(stakes.at(i));
             set[i] = stakes.at(i);
         }
         return set;
